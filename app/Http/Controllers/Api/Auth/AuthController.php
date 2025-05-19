@@ -6,11 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use App\Service\EmailVerificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
+    //Dependency Injection
+    public EmailVerificationService $emailVerificationService;
+    public function __construct(EmailVerificationService $emailVerificationService){
+        $this->emailVerificationService = $emailVerificationService;
+    }
     public function login(LoginRequest $request){
         try{
             if(!$token = Auth::attempt($request->validated())){
@@ -31,6 +37,7 @@ class AuthController extends Controller
     public function register(RegisterRequest $request){
         try {
             $user = User::query()->create($request->validated());
+            $this->emailVerificationService->sendVerificationLink($user);
             $token = Auth::login($user);
             return $this->responseWithToken($token, $user);
         }catch (\Exception $e){
